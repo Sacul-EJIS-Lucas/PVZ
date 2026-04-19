@@ -1,75 +1,110 @@
-// ZombieBase.cs
+// Assets/Scripts/Zombies/ZombieBase.cs
 using UnityEngine;
 
 public class ZombieBase : MonoBehaviour
 {
-    [Header("Stats")]
-    public int maxHealth = 100;
-    public int currentHealth;
+    [Header("Movement")]
     public float moveSpeed = 0.4f;
-    public int attackDamage = 10;
+
+    [Header("Attack")]
     public float attackInterval = 1f;
+    public int   attackDamage   = 100;
 
-    protected PlantBase targetPlant;
-    protected float attackTimer;
-    protected bool isDead;
+    protected enum ZombieState { Moving, Eating, Dead }
+    protected ZombieState state = ZombieState.Moving;
 
-    protected virtual void Awake() => currentHealth = maxHealth;
+    protected PlantBase currentTarget;
+    protected float     attackTimer;
+    protected Animator  anim;
+
+    protected virtual void Awake()
+    {
+        anim = GetComponent<Animator>();
+    }
 
     protected virtual void Update()
     {
-        if (isDead) return;
+        if (state == ZombieState.Dead) return;
 
-        if (targetPlant != null)
-            Attack();
-        else
-            Move();
-
-        // 到达左边界 = 游戏失败
-        if (transform.position.x < -6f)
-            GameManager.Instance.GameOver();
-    }
-
-    protected virtual void Move()
-    {
-        transform.Translate(Vector3.left * moveSpeed * Time.deltaTime);
-    }
-
-    protected virtual void Attack()
-    {
-        attackTimer += Time.deltaTime;
-        if (attackTimer >= attackInterval)
+        if (state == ZombieState.Moving)
         {
-            targetPlant?.TakeDamage(attackDamage);
-            attackTimer = 0;
-            if (targetPlant == null || targetPlant.currentHealth <= 0)
-                targetPlant = null;
+            transform.Translate(Vector3.left * moveSpeed * Time.deltaTime);
+            if (transform.position.x < -6f)
+                GameManager.Instance.GameOver();
+        }
+        else if (state == ZombieState.Eating)
+        {
+            if (currentTarget == null)
+            {
+                SetState(ZombieState.Moving);
+                return;
+            }
+            attackTimer += Time.deltaTime;
+            if (attackTimer >= attackInterval)
+            {
+                attackTimer = 0f;
+                currentTarget?.TakeDamage(attackDamage);
+                anim?.SetTrigger("Bite");
+            }
         }
     }
 
     void OnTriggerEnter2D(Collider2D other)
     {
-        if (other.CompareTag("Plant"))
-            targetPlant = other.GetComponent<PlantBase>();
+        if (state == ZombieState.Dead) return;
+        if (!other.CompareTag("Plant")) return;
+        if (Mathf.Abs(transform.position.y - other.transform.position.y) > 0.45f) return;
+
+        var plant = other.GetComponent<PlantBase>();
+        if (plant != null)
+        {
+            currentTarget = plant;
+            SetState(ZombieState.Eating);
+        }
     }
 
     void OnTriggerExit2D(Collider2D other)
     {
-        if (other.CompareTag("Plant") && targetPlant == other.GetComponent<PlantBase>())
-            targetPlant = null;
+        if (other.CompareTag("Plant") &&
+            other.GetComponent<PlantBase>() == currentTarget)
+        {
+            currentTarget = null;
+            if (state != ZombieState.Dead)
+                SetState(ZombieState.Moving);
+        }
+    }
+
+    protected void SetState(ZombieState newState)
+    {
+        state = newState;
+        switch (newState)
+        {
+            case ZombieState.Moving:
+                currentTarget = null;
+                attackTimer   = 0f;
+                anim?.SetBool("IsEating", false);
+                break;
+            case ZombieState.Eating:
+                attackTimer = 0f;
+                anim?.SetBool("IsEating", true);
+                break;
+            case ZombieState.Dead:
+                anim?.SetTrigger("Die");
+                break;
+        }
     }
 
     public virtual void TakeDamage(int damage)
     {
-        currentHealth -= damage;
-        if (currentHealth <= 0) Die();
+        GetComponent<ZombieHealth>().TakeDamage(damage);
     }
 
-    protected virtual void Die()
+    public virtual void Die()
     {
-        isDead = true;
-        WaveManager.Instance.OnZombieDied();
-        // TODO: 死亡动画
-        Destroy(gameObject, 0.5f);
+        if (state == ZombieState.Dead) return;
+        SetState(ZombieState.Dead);
+        WaveManager.Instance?.OnZombieDied();
+        GetComponent<Collider2D>().enabled = false;
+        Destroy(gameObject, 1.2f);
     }
 }

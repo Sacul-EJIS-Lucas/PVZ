@@ -1,4 +1,4 @@
-// SunManager.cs
+// Assets/Scripts/SunManager.cs
 using UnityEngine;
 using TMPro;
 
@@ -9,10 +9,10 @@ public class SunManager : MonoBehaviour
     public int sunCount = 50;
     public TextMeshProUGUI sunText;
 
-    [Header("Sun Drop Settings")]
+    [Header("Auto Drop")]
     public GameObject sunPrefab;
     public float dropInterval = 10f;
-    public float nextDropTime;
+    private float nextDropTime;
 
     void Awake() => Instance = this;
 
@@ -33,8 +33,7 @@ public class SunManager : MonoBehaviour
 
     void SpawnSun()
     {
-        // 随机X轴位置，从屏幕上方掉落
-        float x = Random.Range(-4f, 4f);
+        float x = Random.Range(-3.5f, 3.5f);
         float targetY = Random.Range(-1.5f, 1.5f);
         Vector3 spawnPos = new Vector3(x, 5f, 0);
         GameObject sun = Instantiate(sunPrefab, spawnPos, Quaternion.identity);

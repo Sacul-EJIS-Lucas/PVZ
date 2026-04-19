@@ -1,12 +1,14 @@
-// PlantBase.cs
+// Assets/Scripts/Plants/PlantBase.cs
 using UnityEngine;
 
 public class PlantBase : MonoBehaviour
 {
     [Header("Stats")]
-    public int maxHealth = 100;
+    public int maxHealth = 300;
     public int currentHealth;
-    public int gridCol, gridRow;
+
+    [HideInInspector] public int gridCol;
+    [HideInInspector] public int gridRow;
 
     protected virtual void Awake()
     {
@@ -22,7 +24,6 @@ public class PlantBase : MonoBehaviour
     protected virtual void Die()
     {
         GridManager.Instance.RemovePlant(gridCol, gridRow);
-        // TODO: 死亡动画
         Destroy(gameObject);
     }
 }

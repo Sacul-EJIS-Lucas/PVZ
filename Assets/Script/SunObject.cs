@@ -1,4 +1,4 @@
-// SunObject.cs
+// Assets/Scripts/SunObject.cs
 using UnityEngine;
 
 public class SunObject : MonoBehaviour
@@ -33,7 +33,6 @@ public class SunObject : MonoBehaviour
     void OnMouseDown()
     {
         SunManager.Instance.AddSun(sunValue);
-        // TODO: 播放收集音效 & 动画
         Destroy(gameObject);
     }
 }
